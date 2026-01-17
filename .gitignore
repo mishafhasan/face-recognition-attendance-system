@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data & Models
+data/enrollments/*
+data/test_images/*
+!data/enrollments/.gitkeep
+!data/test_images/.gitkeep
+*.pkl
+*.pickle
+*.h5
+*.pt
+*.onnx
+
+# DeepFace models cache
+.deepface/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (frontend)
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Flutter (mobile)
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Docker
+*.tar
+
+# Temp files
+*.tmp
+temp_*.jpg
