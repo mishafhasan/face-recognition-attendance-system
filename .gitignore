@@ -61,3 +61,6 @@ mobile/.flutter-plugins-dependencies
 # Temp files
 *.tmp
 temp_*.jpg
+
+# Dataset
+data/
