@@ -71,6 +71,43 @@ Follow these notebooks in sequence to train your own model:
 
 **All notebooks support both Google Colab and local environments!**
 
+## 📦 Dataset Setup
+
+This project uses two datasets from Kaggle:
+
+1. **VGGFace2** (`hearfool/vggface2`) - Training dataset (~2.5 GB, 480 identities)
+2. **LFW People** (`atulanandjha/lfwpeople`) - Validation dataset (~173 MB, 5,749 people)
+
+### Quick Download
+
+```bash
+# Install kagglehub
+pip install kagglehub
+
+# Set up Kaggle authentication (one-time)
+# Download kaggle.json from https://www.kaggle.com/settings
+# Place it in ~/.kaggle/kaggle.json
+
+# Download both datasets
+python scripts/download_kaggle_datasets.py --datasets all --output data/
+
+# Or download individually
+python scripts/download_kaggle_datasets.py --datasets vggface2 --output data/
+python scripts/download_kaggle_datasets.py --datasets lfw --output data/
+```
+
+### Manual Download
+
+If automatic download fails:
+
+1. **VGGFace2**: Visit https://www.kaggle.com/datasets/hearfool/vggface2
+2. **LFW People**: Visit https://www.kaggle.com/datasets/atulanandjha/lfwpeople
+3. Download and extract to `data/vggface2/` and `data/lfw/` respectively
+
+📖 **Complete Guide**: See [docs/DATASET_DOWNLOAD_GUIDE.md](docs/DATASET_DOWNLOAD_GUIDE.md) for detailed instructions, troubleshooting, and authentication setup.
+
+**All notebooks support both Google Colab and local environments!**
+
 ## 🏗️ Project Structure
 
 ```
@@ -86,7 +123,8 @@ face-based_attendance_system/
 ├── frontend/            # Next.js frontend
 ├── notebooks/           # Training notebooks (Colab-ready)
 ├── data/               # Datasets and processed data
-│   ├── vggface2/       # Training dataset
+│   ├── vggface2/       # Training dataset (VGGFace2)
+│   ├── lfw/            # Validation dataset (LFW People)
 │   ├── processed/      # Preprocessed faces
 │   └── enrollments/    # Enrolled users
 ├── models/             # Trained models
@@ -134,7 +172,8 @@ The notebooks automatically detect the environment and use the correct path!
 ## 📖 Documentation
 
 - 📘 [Quick Start - Google Colab](QUICK_START_COLAB.md) - Get started in 5 minutes
-- 📗 [Google Colab Setup Guide](docs/GOOGLE_COLAB_SETUP.md) - Comprehensive setup instructions
+- � [Dataset Download Guide](docs/DATASET_DOWNLOAD_GUIDE.md) - **NEW!** Download VGGFace2 & LFW datasets
+- �📗 [Google Colab Setup Guide](docs/GOOGLE_COLAB_SETUP.md) - Comprehensive setup instructions
 - 📕 [Configuration Summary](CONFIGURATION_SUMMARY.md) - Technical configuration details
 - 📙 [Notebook Verification Cells](docs/NOTEBOOK_VERIFICATION_CELLS.md) - Debugging helpers
 - 📔 [Project Roadmap](ROADMAP.md) - Development roadmap and milestones
@@ -236,10 +275,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **VGGFace2**: Large-scale face recognition dataset
+- **VGGFace2**: Large-scale face recognition dataset (Kaggle: hearfool/vggface2)
+- **LFW People**: Labeled Faces in the Wild dataset (Kaggle: atulanandjha/lfwpeople)
 - **MobileFaceNet**: Efficient face recognition architecture
 - **ArcFace**: State-of-the-art loss function
 - **Google Colab**: Free GPU resources for research
+- **Kaggle**: Hosting datasets and providing kagglehub API
 
 ## 📞 Support
 

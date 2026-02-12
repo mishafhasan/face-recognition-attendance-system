@@ -64,3 +64,5 @@ temp_*.jpg
 
 # Dataset
 data/
+
+/docs

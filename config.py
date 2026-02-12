@@ -28,9 +28,28 @@ NOTEBOOKS_DIR = os.path.join(PROJECT_ROOT, "notebooks")
 
 # Data subdirectories
 VGGFACE2_DIR = os.path.join(DATA_DIR, "vggface2")
+LFW_DIR = os.path.join(DATA_DIR, "lfw")
 PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 TEST_IMAGES_DIR = os.path.join(DATA_DIR, "test_images")
 ENROLLMENTS_DIR = os.path.join(DATA_DIR, "enrollments")
+
+# Dataset configurations
+DATASETS = {
+    'vggface2': {
+        'path': VGGFACE2_DIR,
+        'kaggle_handle': 'hearfool/vggface2',
+        'description': 'VGGFace2 - Large-scale face recognition dataset',
+        'structure': 'train/nXXXXXX/*.jpg',
+        'use_for': 'training',
+    },
+    'lfw': {
+        'path': LFW_DIR,
+        'kaggle_handle': 'atulanandjha/lfwpeople',
+        'description': 'LFW People - Labeled Faces in the Wild',
+        'structure': 'person_name/*.jpg or lfw/person_name/*.jpg',
+        'use_for': 'validation',
+    },
+}
 
 # Model subdirectories
 CHECKPOINTS_DIR = os.path.join(MODELS_DIR, "checkpoints")
@@ -50,7 +69,7 @@ VAL_SPLIT = 0.1
 def ensure_directories():
     """Create all necessary directories if they don't exist."""
     directories = [
-        DATA_DIR, MODELS_DIR, VGGFACE2_DIR, PROCESSED_DIR,
+        DATA_DIR, MODELS_DIR, VGGFACE2_DIR, LFW_DIR, PROCESSED_DIR,
         TEST_IMAGES_DIR, ENROLLMENTS_DIR, CHECKPOINTS_DIR
     ]
     for directory in directories:
