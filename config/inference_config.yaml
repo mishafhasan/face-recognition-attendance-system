@@ -1,0 +1,108 @@
+# MobileArcFace Inference Configuration
+# Version: 3.0 - Production Ready
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+model:
+  # Model paths (in order of preference)
+  onnx_path: "models/exported/mobilefacenet.onnx"
+  torchscript_path: "models/exported/mobilefacenet.pt"
+  pytorch_path: "models/checkpoints/best_backbone.pth"
+  
+  # Runtime settings
+  device: "auto"                      # auto, cuda, cpu
+  use_onnx: true                      # Prefer ONNX for production
+  
+  # Model specifications
+  embedding_size: 512                 # Must match training
+  input_size: [112, 112]              # Model input size
+
+# =============================================================================
+# FACE DETECTION CONFIGURATION
+# =============================================================================
+face_detection:
+  backend: "mtcnn"                    # mtcnn, retinaface, mediapipe
+  min_face_size: 20                   # Minimum face size in pixels
+  thresholds: [0.6, 0.7, 0.7]         # Detection confidence thresholds
+  device: "auto"                      # auto, cuda, cpu
+  
+  # MTCNN specific
+  factor: 0.709                       # Scale factor for pyramid
+  
+  # Output settings
+  return_landmarks: true              # Return facial landmarks
+  margin: 0                           # Extra margin around face
+
+# =============================================================================
+# PREPROCESSING CONFIGURATION
+# =============================================================================
+preprocessing:
+  input_size: [112, 112]              # Face crop size
+  mean: [0.5, 0.5, 0.5]               # Normalization mean
+  std: [0.5, 0.5, 0.5]                # Normalization std
+  
+  # Alignment
+  align_faces: true                   # Apply face alignment
+  reference_landmarks:                # 5-point landmarks for alignment
+    left_eye: [38.2946, 51.6963]
+    right_eye: [73.5318, 51.5014]
+    nose: [56.0252, 71.7366]
+    left_mouth: [41.5493, 92.3655]
+    right_mouth: [70.7299, 92.2041]
+
+# =============================================================================
+# RECOGNITION CONFIGURATION
+# =============================================================================
+recognition:
+  # Similarity thresholds
+  similarity_threshold: 0.5           # Default verification threshold
+  strict_threshold: 0.6               # High confidence threshold
+  lenient_threshold: 0.4              # Low confidence threshold
+  
+  # Search settings
+  top_k: 5                            # Return top K matches
+  embedding_normalize: true           # L2 normalize embeddings (always true)
+  
+  # Verification settings
+  use_flip: true                      # Test time augmentation with flip
+
+# =============================================================================
+# EMBEDDING DATABASE CONFIGURATION
+# =============================================================================
+embedding_db:
+  path: "data/embeddings/database.pkl"
+  backup_path: "data/embeddings/database_backup.pkl"
+  update_on_register: true            # Update DB when new face registered
+  
+  # Search optimization
+  use_faiss: false                    # Use FAISS for large databases
+  index_type: "flat"                  # flat, ivf, hnsw
+
+# =============================================================================
+# PERFORMANCE CONFIGURATION
+# =============================================================================
+performance:
+  batch_size: 32                      # Batch processing size
+  enable_fp16: true                   # FP16 inference (2x faster)
+  num_threads: 4                      # CPU threads for ONNX Runtime
+  
+  # ONNX Runtime optimization
+  graph_optimization: true            # Enable graph optimizations
+  memory_optimization: true           # Reduce memory usage
+
+# =============================================================================
+# API CONFIGURATION (for deployment)
+# =============================================================================
+api:
+  host: "0.0.0.0"
+  port: 8000
+  max_concurrent_requests: 10
+  request_timeout: 30                 # Seconds
+  
+  # Rate limiting
+  rate_limit: 100                     # Requests per minute
+  
+  # Response settings
+  return_embedding: false             # Don't return raw embeddings
+  return_similarity_score: true       # Return similarity scores

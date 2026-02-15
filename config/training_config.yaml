@@ -1,0 +1,124 @@
+# MobileArcFace Training Configuration
+# Version: 3.0 - Optimized for VGGFace2 + Colab
+
+# =============================================================================
+# MODEL CONFIGURATION
+# =============================================================================
+model:
+  backbone: "mobilefacenet"           # MobileFaceNet (~1M params)
+  embedding_size: 512                 # 512-D embeddings (standard)
+  loss_type: "arcface"                # arcface, cosface, combined
+  pretrained: null                    # Path to pretrained weights (optional)
+
+# ArcFace Loss Configuration
+arcface:
+  scale: 64.0                         # Scaling factor (64 is optimal)
+  margin: 0.5                         # Angular margin in radians (~28.6°)
+
+# CosFace Loss Configuration (alternative)
+cosface:
+  scale: 64.0
+  margin: 0.35
+
+# Combined Margin Loss (optional)
+combined_margin:
+  scale: 64.0
+  arcface_margin: 0.5
+  cosface_margin: 0.0
+  softplus_margin: 0.0
+
+# =============================================================================
+# TRAINING CONFIGURATION
+# =============================================================================
+training:
+  batch_size: 256                     # Increased for better GPU utilization (128 for T4, 256-512 for V100/A100)
+  epochs: 20                          # 20 epochs sufficient for VGGFace2
+  learning_rate: 0.1                  # Initial learning rate
+  weight_decay: 0.0005                # L2 regularization
+  momentum: 0.9                       # SGD momentum
+  
+  # Learning Rate Scheduler
+  scheduler:
+    type: "warmup_cosine"             # warmup_cosine, multistep, cosine
+    warmup_epochs: 1                  # Warmup for 1 epoch
+    min_lr: 0.000001                  # Minimum LR after decay
+    # For multistep:
+    milestones: [12, 18]
+    gamma: 0.1
+  
+  # Optimization Settings
+  mixed_precision: true               # Enable AMP (2x speedup)
+  gradient_clipping: 5.0              # Max gradient norm
+  gradient_accumulation: 1            # Accumulate N batches
+  
+  # Colab Protection
+  checkpoint_every_n_steps: 500       # Save every 500 steps
+  auto_resume: true                   # Resume from latest checkpoint
+
+# =============================================================================
+# DATA CONFIGURATION
+# =============================================================================
+data:
+  input_size: [112, 112]              # Face crop size
+  mean: [0.5, 0.5, 0.5]               # Normalization mean
+  std: [0.5, 0.5, 0.5]                # Normalization std
+  num_workers: 8                      # OPTIMIZED: Increased from 2 to 8 for parallel data loading
+  pin_memory: true                    # Pin memory for faster GPU transfer
+  prefetch_factor: 3                  # NEW: Prefetch 3 batches per worker (24 total batches ready)
+  persistent_workers: true            # NEW: Keep workers alive between epochs (faster epoch transitions)
+  non_blocking: true                  # NEW: Async GPU transfer for data loading overlap
+  
+  # Paths
+  train_path: "data/processed/train_aligned"
+  val_path: "data/processed/val_aligned"
+  vggface2_path: "data/vggface2"
+  
+# =============================================================================
+# AUGMENTATION CONFIGURATION
+# =============================================================================
+augmentation:
+  # Geometric
+  horizontal_flip: 0.5                # Flip probability
+  rotation_limit: 10                  # Random rotation ±degrees
+  
+  # Photometric
+  brightness_limit: 0.2               # Brightness adjustment
+  contrast_limit: 0.2                 # Contrast adjustment
+  hue_shift_limit: 10                 # Hue shift
+  saturation_limit: 20                # Saturation adjustment
+  
+  # Noise
+  gaussian_noise: 0.3                 # Gaussian noise probability
+  gaussian_blur: 0.3                  # Blur probability
+  blur_limit: [3, 5]                  # Blur kernel size range
+
+# =============================================================================
+# VALIDATION CONFIGURATION
+# =============================================================================
+validation:
+  # LFW Benchmark
+  lfw_pairs_path: "data/lfw/pairs.txt"
+  lfw_data_path: "data/lfw/lfw-deepfunneled"
+  
+  # Validation Schedule
+  validation_interval: 1              # Validate every N epochs
+  
+  # Thresholds
+  verification_threshold: 0.5         # Default threshold for TAR/FAR
+  
+# =============================================================================
+# CHECKPOINTING CONFIGURATION
+# =============================================================================
+checkpointing:
+  save_dir: "models/checkpoints"      # Checkpoint directory
+  save_best_only: false               # Save all checkpoints
+  keep_last_n: 3                      # Keep last N checkpoints
+  metric: "lfw_accuracy"              # Metric for best model
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  tensorboard_dir: "runs"             # TensorBoard logs
+  log_interval: 50                    # Log every N batches
+  print_freq: 100                     # Print stats every N batches
