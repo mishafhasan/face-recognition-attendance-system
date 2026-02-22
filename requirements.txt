@@ -1,42 +1,45 @@
-# MobileArcFace Face Recognition System
-# Core Deep Learning
+# ==============================================================================
+# Face-Based Attendance System - Full Stack Dependencies
+# Training (Colab/Local) + Backend + Inference
+# ==============================================================================
+
+# Core ML Framework
 torch>=2.0.0
 torchvision>=0.15.0
 
 # Dataset Management
-kagglehub>=0.4.0
+kagglehub>=0.4.0                # Kaggle dataset downloads (VGGFace2-112x112)
 
-# Face Detection & Recognition
-facenet-pytorch>=2.5.0
-mtcnn>=0.1.1
-onnxruntime-gpu>=1.14.0
+# Face Detection
+facenet-pytorch>=2.5.3          # MTCNN face detection
 
 # Data Processing
 numpy>=1.24.0
-pandas>=2.0.0
-opencv-python>=4.7.0
-Pillow>=9.5.0
-albumentations>=1.3.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+scikit-learn>=1.3.0             # LFW pair evaluation + stratified splitting
 
 # Training Utilities
-tqdm>=4.65.0
-tensorboard>=2.12.0
+tqdm>=4.66.0
+tensorboard>=2.14.0
 pyyaml>=6.0
-scikit-learn>=1.3.0
-
-# Visualization
 matplotlib>=3.7.0
 seaborn>=0.12.0
 
-# API (for deployment)
-fastapi>=0.95.0
-uvicorn>=0.21.0
-python-multipart>=0.0.6
-
-# Testing
-pytest>=7.3.0
-pytest-cov>=4.1.0
-
 # Model Export
 onnx>=1.14.0
-onnxruntime>=1.14.0
+onnxruntime>=1.16.0
+
+# API (Backend Deployment)
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# DeepFace (Alternative Backend Pipeline)
+deepface>=0.0.80
+retina-face>=0.0.14
+
+# Testing
+pytest>=7.4.0

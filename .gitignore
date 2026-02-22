@@ -66,3 +66,7 @@ temp_*.jpg
 data/
 
 /docs
+
+/models
+
+/.github

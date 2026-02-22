@@ -37,17 +37,16 @@ ENROLLMENTS_DIR = os.path.join(DATA_DIR, "enrollments")
 DATASETS = {
     'vggface2': {
         'path': VGGFACE2_DIR,
-        'kaggle_handle': 'hearfool/vggface2',
-        'description': 'VGGFace2 - Large-scale face recognition dataset',
-        'structure': 'train/nXXXXXX/*.jpg',
-        'use_for': 'training',
+        'kaggle_handle': 'yakhyokhuja/vggface2-112x112',
+        'description': 'VGGFace2 112x112 - Pre-aligned face recognition dataset (8,631 identities, ~3.14M images)',
+        'structure': 'data/nXXXXXX/*.jpg',
+        'use_for': 'training + validation (auto 90/10 split)',
     },
     'lfw': {
         'path': LFW_DIR,
-        'kaggle_handle': 'atulanandjha/lfwpeople',
-        'description': 'LFW People - Labeled Faces in the Wild',
-        'structure': 'person_name/*.jpg or lfw/person_name/*.jpg',
-        'use_for': 'validation',
+        'source': 'sklearn.datasets.fetch_lfw_pairs',
+        'description': 'LFW Pairs - Labeled Faces in the Wild (evaluation benchmark)',
+        'use_for': 'evaluation (pair verification)',
     },
 }
 

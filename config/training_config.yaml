@@ -31,9 +31,9 @@ combined_margin:
 # TRAINING CONFIGURATION
 # =============================================================================
 training:
-  batch_size: 256                     # Increased for better GPU utilization (128 for T4, 256-512 for V100/A100)
-  epochs: 20                          # 20 epochs sufficient for VGGFace2
-  learning_rate: 0.1                  # Initial learning rate
+  batch_size: 256                     # GPU-dependent (128 for T4, 256+ for V100/A100)
+  epochs: 25                          # 25 epochs with cosine annealing
+  learning_rate: 0.01                 # Stable for single-GPU ArcFace training
   weight_decay: 0.0005                # L2 regularization
   momentum: 0.9                       # SGD momentum
   
