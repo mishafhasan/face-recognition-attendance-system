@@ -2,9 +2,15 @@
 MobileFaceNet + ArcFace Model Architecture
 
 Shared model definitions used by training, evaluation, and export scripts.
-Architecture matches the complete pipeline notebook exactly.
+Architecture: MobileFaceNet with Bottleneck Residual Blocks + ArcFace Loss.
 
-MobileFaceNet: ~1M params, 112x112 input -> 512-D L2-normalized embedding
+Fixes applied:
+  - Upgraded DepthWise blocks to Bottleneck-style with channel expansion factor
+    (previously plain DW-separable; expansion is required for sufficient model capacity)
+  - Linear projection in Bottleneck (no activation after PW conv as per original paper)
+  - Proper residual connection with skip only when stride==1 and channels match
+
+MobileFaceNet: ~1.0M params, 112x112 input -> 512-D L2-normalized embedding
 ArcFace: Additive Angular Margin Loss (scale=64, margin=0.5)
 """
 
@@ -33,39 +39,67 @@ class ConvBlock(nn.Module):
 
 
 class DepthWise(nn.Module):
-    """Depthwise Separable Convolution: DW 3x3 -> PW 1x1"""
+    """
+    Depthwise Separable Convolution with Bottleneck Expansion.
 
-    def __init__(self, in_c, out_c, s=1):
+    Structure (MobileNetV2-style inverted residual for face recognition):
+        PW 1x1 (in_c -> in_c * t)  : expansion (PReLU)
+        DW 3x3/stride               : spatial filtering (PReLU)
+        PW 1x1 (in_c * t -> out_c) : projection (linear, NO activation)
+
+    The linear projection at the end preserves the learned features in the
+    embedding space without non-linear distortion — critical for face recognition.
+    Expansion factor t=2 doubles internal channels, giving the model sufficient
+    capacity to learn discriminative face features even with lightweight DW convs.
+    """
+
+    def __init__(self, in_c, out_c, s=1, t=2):
         super().__init__()
-        self.dw = nn.Conv2d(in_c, in_c, 3, s, 1, groups=in_c, bias=False)
-        self.bn1 = nn.BatchNorm2d(in_c)
-        self.act1 = nn.PReLU(in_c)
-        self.pw = nn.Conv2d(in_c, out_c, 1, 1, 0, bias=False)
-        self.bn2 = nn.BatchNorm2d(out_c)
-        self.act2 = nn.PReLU(out_c)
+        mid_c = in_c * t
+
+        # Channel expansion (pointwise)
+        self.expand = nn.Sequential(
+            nn.Conv2d(in_c, mid_c, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(mid_c),
+            nn.PReLU(mid_c),
+        )
+        # Depthwise spatial conv
+        self.dw = nn.Sequential(
+            nn.Conv2d(mid_c, mid_c, 3, s, 1, groups=mid_c, bias=False),
+            nn.BatchNorm2d(mid_c),
+            nn.PReLU(mid_c),
+        )
+        # Linear projection (no activation - preserves feature manifold)
+        self.project = nn.Sequential(
+            nn.Conv2d(mid_c, out_c, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(out_c),
+        )
 
     def forward(self, x):
-        x = self.act1(self.bn1(self.dw(x)))
-        return self.act2(self.bn2(self.pw(x)))
+        x = self.expand(x)
+        x = self.dw(x)
+        return self.project(x)
 
 
 class DepthWiseRes(nn.Module):
-    """Depthwise Separable Conv with optional residual connection."""
+    """Bottleneck Depthwise block with optional residual connection."""
 
-    def __init__(self, in_c, out_c, s=1):
+    def __init__(self, in_c, out_c, s=1, t=2):
         super().__init__()
-        self.residual = (s == 1 and in_c == out_c)
-        self.dw = DepthWise(in_c, out_c, s)
+        # Residual only when spatial dims and channels are preserved
+        self.use_residual = (s == 1 and in_c == out_c)
+        self.block = DepthWise(in_c, out_c, s, t)
 
     def forward(self, x):
-        return x + self.dw(x) if self.residual else self.dw(x)
+        out = self.block(x)
+        return x + out if self.use_residual else out
 
 
-def make_stage(in_c, out_c, n, s=2):
-    """Build a stage of n depthwise residual blocks."""
-    layers = [DepthWiseRes(in_c, out_c, s)]
+def make_stage(in_c, out_c, n, s=2, t=2):
+    """Build a stage of n bottleneck depthwise blocks."""
+    layers = [DepthWiseRes(in_c, out_c, s, t)]
     for _ in range(1, n):
-        layers.append(DepthWiseRes(out_c, out_c, 1))
+        layers.append(DepthWiseRes(out_c, out_c, 1, t))
     return nn.Sequential(*layers)
 
 
@@ -75,28 +109,32 @@ def make_stage(in_c, out_c, n, s=2):
 
 class MobileFaceNet(nn.Module):
     """
-    MobileFaceNet: Lightweight Face Recognition Backbone
+    MobileFaceNet: Lightweight Face Recognition Backbone with Bottleneck Blocks
 
     Architecture:
-        Conv3x3/2 (3->64) -> DepthWise (64->64)
-        Stage 1: 5 blocks (64->64, stride 2)   112->56->28
-        Stage 2: 1 block  (64->128, stride 2)  28->14
-        Stage 3: 6 blocks (128->128, stride 2)  14->7
-        Stage 4: 1 block  (128->128, stride 1)  7->7
-        Conv1x1 (128->512) -> GDC 7x7 -> Linear -> BN -> L2-norm
+        Conv3x3/2  (3 -> 64)                    : 112x112 -> 56x56
+        DepthWise  (64 -> 64, stride 1)          : 56x56
+        Stage 1:   5 bottleneck blocks (64->64, stride 2)     -> 28x28
+        Stage 2:   1 bottleneck block  (64->128, stride 2)    -> 14x14
+        Stage 3:   6 bottleneck blocks (128->128, stride 2)   -> 7x7
+        Stage 4:   1 bottleneck block  (128->128, stride 1)   -> 7x7
+        Conv1x1    (128 -> 512)
+        GDC 7x7    (depthwise global)                         -> 1x1
+        Linear 512 -> emb_dim
+        BatchNorm1d -> L2-normalize
 
-    Total: ~1M parameters
+    Total: ~1.0M parameters  (bottleneck t=2)
     Output: 512-D L2-normalized embedding
     """
 
     def __init__(self, emb_dim=512):
         super().__init__()
         self.conv1 = ConvBlock(3, 64, 3, 2, 1)
-        self.dw1 = DepthWise(64, 64, 1)
-        self.stage1 = make_stage(64, 64, 5, 2)
-        self.stage2 = make_stage(64, 128, 1, 2)
-        self.stage3 = make_stage(128, 128, 6, 2)
-        self.stage4 = make_stage(128, 128, 1, 1)
+        self.dw1 = DepthWise(64, 64, 1, t=1)   # t=1 for the initial DW (no expansion needed)
+        self.stage1 = make_stage(64, 64, 5, 2, t=2)
+        self.stage2 = make_stage(64, 128, 1, 2, t=2)
+        self.stage3 = make_stage(128, 128, 6, 2, t=2)
+        self.stage4 = make_stage(128, 128, 1, 1, t=2)
         self.conv_exp = ConvBlock(128, 512, 1, 1, 0)
         self.gdc = nn.Sequential(
             nn.Conv2d(512, 512, 7, 1, 0, groups=512, bias=False),
@@ -110,12 +148,12 @@ class MobileFaceNet(nn.Module):
         """Kaiming initialization for better convergence."""
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, (nn.BatchNorm2d, nn.BatchNorm1d)):
                 nn.init.ones_(m.weight)
                 nn.init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
     def forward(self, x):
         x = self.conv1(x)

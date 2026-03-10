@@ -33,18 +33,19 @@ combined_margin:
 training:
   batch_size: 256                     # GPU-dependent (128 for T4, 256+ for V100/A100)
   epochs: 25                          # 25 epochs with cosine annealing
-  learning_rate: 0.01                 # Stable for single-GPU ArcFace training
+  learning_rate: 0.1                  # ArcFace standard for single-GPU SGD
   weight_decay: 0.0005                # L2 regularization
   momentum: 0.9                       # SGD momentum
   
   # Learning Rate Scheduler
   scheduler:
-    type: "warmup_cosine"             # warmup_cosine, multistep, cosine
-    warmup_epochs: 1                  # Warmup for 1 epoch
-    min_lr: 0.000001                  # Minimum LR after decay
-    # For multistep:
-    milestones: [12, 18]
-    gamma: 0.1
+    type: "multistep"                 # multistep (recommended) | cosine
+    # Multi-step milestones (epoch indices, 0-based)
+    milestones: [10, 18, 22]          # Flat LR phases → sharp drops (InsightFace standard)
+    gamma: 0.1                        # LR multiplier at each milestone
+    # Cosine / warmup settings (used when type: cosine)
+    warmup_steps: 1000                # Fixed warmup steps (not epoch-based)
+    min_lr: 0.00001                   # Floor LR for cosine schedule
   
   # Optimization Settings
   mixed_precision: true               # Enable AMP (2x speedup)
@@ -53,7 +54,7 @@ training:
   
   # Colab Protection
   checkpoint_every_n_steps: 500       # Save every 500 steps
-  auto_resume: true                   # Resume from latest checkpoint
+  auto_resume: false                  # Set true (or pass --resume) to load latest checkpoint
 
 # =============================================================================
 # DATA CONFIGURATION
